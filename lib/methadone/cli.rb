@@ -70,7 +70,7 @@ module Methadone
       relative_path = File.join(relative_path.split(/\//))
 
       template_path = File.join(template_dir(options[:from]),relative_path + ".erb")
-      template = ERB.new(File.open(template_path).readlines.join(''))
+      template = ERB.new(File.open(template_path).readlines.join(''), nil, '-')
 
       relative_path_parts = File.split(relative_path)
       relative_path_parts[-1] = options[:as] if options[:as]
