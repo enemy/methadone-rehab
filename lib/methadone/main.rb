@@ -1,6 +1,6 @@
 require 'optparse'
 require 'yaml'
-
+require 'pry'
 begin
   Module.const_get('BasicObject')
   # We are 1.9.x
@@ -273,6 +273,19 @@ module Methadone
       @options ||= {}
     end
 
+    # Specify an acceptable command that will be hanlded by the given command provider
+    #
+    #
+    def command(providers={})
+      providers.each do |name,cls|
+        raise InvalidProvider.new('Provider must respond to go!') unless cls.respond_to? :go!
+        commands[name.to_s] = cls
+      end
+    end
+
+    def commands
+      @commands ||= Hash.new
+    end
     # Set the version of your app so it appears in the
     # banner.  This also adds --version as an option to your app which,
     # when used, will act just like --help (see version_options to control this)
@@ -378,6 +391,7 @@ module Methadone
           new_options[key.to_sym] = value
         end
       end
+      binding.pry if $pry
       options.merge!(new_options)
     end
 
@@ -588,4 +602,7 @@ module Methadone
     STRINGS_ONLY = lambda { |o| o.kind_of?(::String) }
 
   end
+
+  InvalidProvider = Class.new(TypeError)
+
 end

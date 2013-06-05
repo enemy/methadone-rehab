@@ -8,7 +8,7 @@ Feature: Support multi-level commands
     And the directory "tml/multi-gem" does not exist
 
   Scenario: Bootstrap a multi-level app from scratch
-    When I successfully run `methadone --commands=a,b,c,d tmp/multigem`
+    When I successfully run `methadone --commands walk,run,crawl,dance tmp/multigem`
     Then the following directories should exist:
       |tmp/multigem                           |
       |tmp/multigem/bin                       |
@@ -28,10 +28,10 @@ Feature: Support multi-level commands
       |tmp/multigem/Gemfile                                     |
       |tmp/multigem/bin/multigem                                |
       |tmp/multigem/lib/multigem/version.rb                     |
-      |tmp/multigem/lib/multigem/commands/a.rb                  |
-      |tmp/multigem/lib/multigem/commands/b.rb                  |
-      |tmp/multigem/lib/multigem/commands/c.rb                  |
-      |tmp/multigem/lib/multigem/commands/d.rb                  |
+      |tmp/multigem/lib/multigem/commands/walk.rb               |
+      |tmp/multigem/lib/multigem/commands/run.rb                |
+      |tmp/multigem/lib/multigem/commands/crawl.rb              |
+      |tmp/multigem/lib/multigem/commands/dance.rb              |
       |tmp/multigem/features/multigem.feature                   |
       |tmp/multigem/features/support/env.rb                     |
       |tmp/multigem/features/step_definitions/multigem_steps.rb |
@@ -45,6 +45,10 @@ Feature: Support multi-level commands
     And the file "tmp/multigem/multigem.gemspec" should match /add_development_dependency\('rake', '~> 0.9.2'/
     And the file "tmp/multigem/multigem.gemspec" should match /add_dependency\('methadone'/
     And the file "tmp/multigem/multigem.gemspec" should use the same block variable throughout
+    And the file "tmp/multigem/bin/multigem" should match /command "walk" => Multigem::Commands::Walk/
+    And the file "tmp/multigem/bin/multigem" should match /command "run" => Multigem::Commands::Run/
+    And the file "tmp/multigem/bin/multigem" should match /command "crawl" => Multigem::Commands::Crawl/
+    And the file "tmp/multigem/bin/multigem" should match /command "dance" => Multigem::Commands::Dance/
     Given I cd to "tmp/multigem"
     And my app's name is "multigem"
     When I successfully run `bin/multigem --help` with "lib" in the library path
@@ -54,4 +58,11 @@ Feature: Support multi-level commands
       |--version|
       |--help|
       |--log-level|
+
+
+  @wip
+  Scenario: Special characters in subcommands and gem name
+    Given PENDING: code not yet in place
+    When I run `methadone --commands walk,run,crawl_to_bed,tap-dance tmp/multi-gem`
+    Then there should be no errors.
 

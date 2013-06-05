@@ -13,6 +13,7 @@ class TestMain < BaseTest
     $stdout = StringIO.new
     @logged = StringIO.new
     @custom_logger = Logger.new(@logged)
+    $pry = false
 
     @original_home = ENV['HOME']
     fake_home = '/tmp/fake-home'
@@ -269,7 +270,7 @@ class TestMain < BaseTest
     }
   end
 
-  test_that "when setting defualts they get copied to strings/symbols as well" do
+  test_that "when setting defaults they get copied to strings/symbols as well" do
     Given {
       @flag_with_string_key_defalt = nil
       @flag_with_symbol_key_defalt = nil
@@ -282,6 +283,8 @@ class TestMain < BaseTest
       options[:bar] = 'BAR'
       on("--foo")
       on("--bar")
+
+      $pry = true
     }
     When run_go_safely
     Then {
