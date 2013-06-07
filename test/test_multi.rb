@@ -100,7 +100,7 @@ class TestMulti < BaseTest
     }
   end
 
-  test_that "command in the arguments causes the right command to be called" do
+  someday_test_that "command in the arguments causes the right command to be called" do
     Given {
       module Commands
         class Walk

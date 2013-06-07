@@ -276,15 +276,15 @@ module Methadone
     # Specify an acceptable command that will be hanlded by the given command provider
     #
     #
-    def command(providers={})
-      providers.each do |name,cls|
-        raise InvalidProvider.new('Provider must respond to go!') unless cls.respond_to? :go!
+    def command(provider_hash={})
+      provider_hash.each do |name,cls|
+        raise InvalidProvider.new("Provider for #{name} must respond to go!") unless cls.respond_to? :go!
         commands[name.to_s] = cls
       end
     end
 
     def commands
-      @commands ||= Hash.new
+      @commands ||= {}
     end
     # Set the version of your app so it appears in the
     # banner.  This also adds --version as an option to your app which,
