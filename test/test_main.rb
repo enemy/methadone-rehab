@@ -520,6 +520,31 @@ class TestMain < BaseTest
     }
   end
 
+  test_that "when I specify a version with :basic format, only the command and version show up and the help is 'show version info'" do
+    @version = "2.0.9.pre"
+    Given {
+      version @version, :basic
+      set_argv %w(--version)
+    }
+    When run_go_safely
+    Then {
+      opts.to_s.should match /^ *--version.*Show version info$/
+      $stdout.string.should match /^#{::File.basename($0)} version #{@version}$/
+    }
+  end
+  test_that "when I specify a version with :terse format, only the version show up and the help is 'show version'" do
+    @version = "2.0.9.pre"
+    Given {
+      version @version, :terse
+      set_argv %w(--version)
+    }
+    When run_go_safely
+    Then {
+      opts.to_s.should match /^ *--version.*Show version$/
+      $stdout.string.should match /^#{@version}$/
+    }
+  end
+
   test_that "default values for options are put into the docstring" do
     Given {
       main {}
