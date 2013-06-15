@@ -269,7 +269,7 @@ class TestMain < BaseTest
     }
   end
 
-  test_that "when setting defualts they get copied to strings/symbols as well" do
+  test_that "when setting defaults they get copied to strings/symbols as well" do
     Given {
       @flag_with_string_key_defalt = nil
       @flag_with_symbol_key_defalt = nil

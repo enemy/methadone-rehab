@@ -27,5 +27,6 @@ Gem::Specification.new do |s|
   s.add_development_dependency("mocha", "0.13.2")
   s.add_development_dependency("minitest", "4.6.1")
   s.add_development_dependency("sdoc")
+  s.add_development_dependency("pry")
   s.add_development_dependency("rspec") # needed so that rspec-bootstrapped app test can run
 end

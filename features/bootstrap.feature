@@ -142,6 +142,23 @@ Feature: Bootstrap a new command-line app
     Then the exit status should not be 0
     And the stderr should match /'app_name' is required/
 
+  Scenario: We can add the lib directory to the load path
+    Given the directory "tmp/newgem2" does not exist
+    When I run `methadone --add-lib tmp/newgem2`
+    Then the exit status should be 0
+    And the file "tmp/newgem2/bin/newgem2" should match /\$LOAD_PATH\.unshift File\.expand_path\(File\.join\(File\.dirname\(__FILE__\), '\.\..lib'\)\)/
+
+    Given I cd to "tmp/newgem2"
+    And my app's name is "newgem2"
+    When I successfully run `bin/newgem2 --help`
+    Then the banner should be present
+    And the banner should document that this app takes options
+    And the following options should be documented:
+      |--version|
+      |--help|
+      |--log-level|
+    And the banner should document that this app takes no arguments
+
   Scenario: Help is properly documented
     When I get help for "methadone"
     Then the exit status should be 0

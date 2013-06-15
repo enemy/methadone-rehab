@@ -70,7 +70,7 @@ module Methadone
       relative_path = File.join(relative_path.split(/\//))
 
       template_path = File.join(template_dir(options[:from]),relative_path + ".erb")
-      template = ERB.new(File.open(template_path).readlines.join(''))
+      template = ERB.new(File.open(template_path).readlines.join(''), nil ,'-')
 
       relative_path_parts = File.split(relative_path)
       relative_path_parts[-1] = options[:as] if options[:as]
@@ -96,6 +96,15 @@ module Methadone
       }.map { |dir| 
         dir.gsub(/^#{template_dir}\//,'')
       }
+    end
+
+    def titlify(name)
+      name.split(/-/).map(&:capitalize).collect{ |segment| segment.split(/_/).map(&:capitalize).join('') }.join('::')
+    end
+
+    def normalize_command(cmd)
+      #Note: not i18n-safe
+      cmd.tr('A-Z','a-z').gsub(/[^a-z0-9_]/,'_').sub(/^_*/,'')
     end
 
   end
