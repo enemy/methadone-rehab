@@ -64,7 +64,6 @@ Feature: Support multi-level commands
       |--help|
       |--log-level|
 
-  @announce
   Scenario: Special characters in subcommands and gem name
     Given a directory named "tmp"
     And the directory "tmp/multigem2" does not exist
