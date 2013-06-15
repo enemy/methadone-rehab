@@ -3,7 +3,7 @@ require 'methadone'
 
 module <%= module_name %> 
   module Commands
-    class <%= titlify(cmd) %>
+    class <%= titlify(normalize_command(cmd)) %>
       include Methadone::Main
       include Methadone::CLILogging
 

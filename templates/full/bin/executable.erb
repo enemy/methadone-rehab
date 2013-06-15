@@ -1,5 +1,9 @@
 #!/usr/bin/env ruby
 
+<% if add_library_to_load_path -%>
+$LOAD_PATH.unshift File.expand_path(File.join(File.dirname(__FILE__), '../lib'))
+
+<% end -%>
 require 'optparse'
 require 'methadone'
 require '<%= require_file %>'

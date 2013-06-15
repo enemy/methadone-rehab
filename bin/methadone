@@ -40,6 +40,8 @@ main do |app_name|
   require_file = gemname if require_file.nil?
   require_file.gsub!(/^.*lib\//,'')
 
+  add_library_to_load_path = options[:add_lib] || false
+
   chdir gemname
 
   template_dirs_in(:full).each  { |dir| mkdir_p dir }
@@ -50,7 +52,7 @@ main do |app_name|
     mkdir_p "lib/#{gemname}/commands"
     copy_file 'lib/commands.rb', :as => "#{gemname}/commands.rb", :from => :multicommand, :binding => binding
     commands.each do |cmd|
-      copy_file 'lib/command.rb', :as => "#{gemname}/commands/#{cmd}.rb",  :from => :multicommand, :binding => binding
+      copy_file 'lib/command.rb', :as => "#{gemname}/commands/#{normalize_command(cmd)}.rb",  :from => :multicommand, :binding => binding
     end
   end
 
@@ -103,8 +105,15 @@ description "Kick the bash habit by bootstrapping your Ruby command-line apps"
 on("--force","Overwrite files if they exist")
 on("--[no-]readme","[Do not ]produce a README file")
 on("--rspec", "Generate RSpec unit tests instead of Test::Unit")
+on("--add-lib", "Add lib to the load path") do
+  options[:add_lib] = true
+end
 on "-c cmd1,cmd2,cmdN", "--commands", Array, "Generate framework for a cli app that provides the following commands" do |commands|
   options[:commands] = commands
+  unless options[:commands].grep(/^-/).empty?
+    puts "Cannot have commands that begin with a '-'"
+    exit 65 # Data format error
+  end
 end
 
 licenses = %w(mit apache custom NONE)

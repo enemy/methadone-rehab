@@ -155,12 +155,37 @@ module Methadone
     #
     # If a required argument (see #arg) is not found, this exits with
     # 64 and a message about that missing argument.
-    def go!
+    #
+    # Subcommand Design Decisions:
+    #  - if you have commands, main block will not be called
+    #  - command must be the first non-option in the argument list
+    #  - global args are not supported if you have commands -- have commands
+    #    take their own args
+    #  - no pre or post block for sub-commands -- let each subcommand call
+    #    common methods from a shared module
+    def go!(parent=nil)
+
+      # Get stuff from parent, if there
+      set_parent(parent)
+      
       setup_defaults
       opts.post_setup
-      opts.parse!
-      opts.check_args!
-      result = call_main
+
+      if opts.commands.empty?
+        opts.parse!
+        opts.check_args!
+        result = call_main
+      else
+        opts.parse_to_command! # Leaves unknown args and options in once it encounters a non-option.
+        if opts.selected_command
+          result = call_provider
+        else
+          puts "You must specify a command\n"
+          puts opts.help
+          exit 64
+        end
+      end
+
       if result.kind_of? Fixnum
         exit result
       else
@@ -222,6 +247,12 @@ module Methadone
       opts.on(*args,&block)
     end
 
+    # Calls the +command+ method of #opts with the given arguments (see RDoc for #opts for the additional
+    # help provided).  Commands are special args that take their own options and other arguments.
+    def command(*args)
+      opts.command(*args)
+    end
+
     # Sets the name of an arguments your app accepts.  Note
     # that no sanity checking is done on the configuration
     # of your arguments you create via multiple calls to this method.
@@ -244,7 +275,7 @@ module Methadone
 
     # Set the description of your app for inclusion in the help output.
     # +desc+:: a short, one-line description of your app
-    def description(desc)
+    def description(desc=nil)
       opts.description(desc)
     end
 
@@ -273,19 +304,6 @@ module Methadone
       @options ||= {}
     end
 
-    # Specify an acceptable command that will be hanlded by the given command provider
-    #
-    #
-    def command(provider_hash={})
-      provider_hash.each do |name,cls|
-        raise InvalidProvider.new("Provider for #{name} must respond to go!") unless cls.respond_to? :go!
-        commands[name.to_s] = cls
-      end
-    end
-
-    def commands
-      @commands ||= {}
-    end
     # Set the version of your app so it appears in the
     # banner.  This also adds --version as an option to your app which,
     # when used, will act just like --help (see version_options to control this)
@@ -333,7 +351,19 @@ module Methadone
       set_defaults_from_env_var
     end
 
+    def set_parent(parent)
+      @parent = parent
+      if parent
+        @options.merge!(parent.options)
+        opts.extend_help_from_parent(parent.opts)
+      end
+    end
+
     def add_defaults_to_docs
+
+      # Remove any pre-existing separator text
+      opts.top.list.reject! {|v| v.is_a? String}
+
       if @env_var && @rc_file
         opts.separator ''
         opts.separator 'Default values can be placed in:'
@@ -360,6 +390,7 @@ module Methadone
     end
 
     def set_defaults_from_rc_file
+      # TODO: Specify defaults for each command
       if @rc_file && File.exists?(@rc_file)
         File.open(@rc_file) do |file| 
           parsed = YAML::load(file)
@@ -391,7 +422,6 @@ module Methadone
           new_options[key.to_sym] = value
         end
       end
-      binding.pry if $pry
       options.merge!(new_options)
     end
 
@@ -414,13 +444,18 @@ module Methadone
     def no_message?(exception)
       exception.message.nil? || exception.message.strip.empty?
     end
+
+    def call_provider
+      command = opts.selected_command
+      opts.commands[command].send(:go!,self)
+    end
   end
 
   # <b>Methadone Internal - treat as private</b>
   #
   # A proxy to OptionParser that intercepts #on
   # so that we can allow a simpler interface
-  class OptionParserProxy < BasicObject
+  class OptionParserProxy < Object
     # Create the proxy
     #
     # +option_parser+:: An OptionParser instance
@@ -430,6 +465,8 @@ module Methadone
     def initialize(option_parser,options)
       @option_parser = option_parser
       @options = options
+      @commands = {}
+      @selected_command = nil
       @user_specified_banner = false
       @accept_options = false
       @args = []
@@ -437,7 +474,9 @@ module Methadone
       @arg_documentation = {}
       @description = nil
       @version = nil
-      set_banner
+      @called_command = nil
+      @parent_usage = nil
+      @option_chain = nil
       document_help
     end
 
@@ -475,11 +514,21 @@ module Methadone
       set_banner
     end
 
+    # Specify an acceptable command that will be hanlded by the given command provider
+    def command(provider_hash={})
+      provider_hash.each do |name,cls|
+        raise InvalidProvider.new("Provider for #{name} must respond to go!") unless cls.respond_to? :go!
+        commands[name.to_s] = cls
+      end
+      set_banner
+    end
+
     # Proxies to underlying OptionParser
     def banner=(new_banner)
       @option_parser.banner=new_banner
       @user_specified_banner = true
     end
+
 
     # Sets the banner to include these arg names
     def arg(arg_name,*options)
@@ -495,8 +544,9 @@ module Methadone
     end
 
     def description(desc)
-      @description = desc
+      @description = desc if desc
       set_banner
+      @description
     end
 
     # Defers all calls save #on to 
@@ -510,16 +560,38 @@ module Methadone
       @option_parser.to_s
     end
 
+    # Acess the command provider list
+    def commands
+      @commands
+    end
+
+    def parse_to_command!
+      @option_parser.order!
+      if command_names.include? ::ARGV[0]
+        @selected_command = ::ARGV.shift
+      end
+    end
+
+    # The selected command
+    def selected_command
+      @selected_command
+    end
+
     # Sets the version for the banner
     def version(version)
       @version = version
       set_banner
     end
 
+    # List the command names
+    def command_names
+      @command_names ||= commands.keys.map {|k| k.to_s}
+    end
+
     # We need some documentation to appear at the end, after all OptionParser setup
     # has occured, but before we actually start.  This method serves that purpose
     def post_setup
-      unless @arg_documentation.empty?
+      if @commands.empty? and ! @arg_documentation.empty?
         @option_parser.separator ''
         @option_parser.separator "Arguments:"
         @option_parser.separator ''
@@ -528,15 +600,48 @@ module Methadone
           @option_parser.separator "        #{@arg_documentation[arg]}"
         end
       end
+      unless @commands.empty?
+        padding = @commands.keys.map {|name| name.to_s.length}.max + 1
+        @option_parser.separator ''
+        @option_parser.separator "Commands:"
+        @commands.each do |name,provider|
+          @option_parser.separator "  #{ "%-#{padding}s" % (name.to_s+':')} #{provider.description}"
+        end
+      end
+
+    end
+
+    def subcommand_usage_prefix
+      self.help.gsub(/^.*(Usage:.*?command) \[command options and args...\].*/m) {$1.gsub(/command$/,@selected_command)}
+    end
+
+    def option_chain
+      self.help.gsub(/\A.*?(\n\n(Global options:|Options for).*?)(\n\nCommand.*|\n\nArguments.*|)\Z/m) {$1}
+    end
+
+    def extend_help_from_parent(parent_opts)
+      @called_command = parent_opts.selected_command
+      @parent_usage = parent_opts.subcommand_usage_prefix
+      @parent_options = parent_opts.option_chain
+      @option_parser.top.search(:short,'h').instance_variable_set(:@desc,["Show '#{@called_command}' command help"])
+      set_banner
     end
 
     private
+
+    # Because there is always an option for -h, if there are subcommands, they
+    # need to show the option holder and Options prefix to differentiate
+    # between the command option an previous options.
+    def accept_options?
+      @accept_options or not (@called_command.nil? or @option_parser.top.list.empty?)
+    end
 
     def document_help
       @option_parser.on("-h","--help","Show command line help") do 
         puts @option_parser.to_s
         exit 0
       end
+      set_banner
     end
 
     def add_default_value_to_docstring(*args)
@@ -560,29 +665,53 @@ module Methadone
     end
 
     def set_banner
-      unless @user_specified_banner
-        new_banner="Usage: #{::File.basename($0)}"
-        new_banner += " [options]" if @accept_options
-        unless @args.empty?
-          new_banner += " " 
-          new_banner += @args.map { |arg|
-            if @arg_options[arg].include? :any
-              "[#{arg.to_s}...]"
-            elsif @arg_options[arg].include? :optional
-              "[#{arg.to_s}]"
-            elsif @arg_options[arg].include? :many
-              "#{arg.to_s}..."
-            else
-              arg.to_s
-            end
-          }.join(' ')
-        end
-        new_banner += "\n\n#{@description}" if @description
-        new_banner += "\n\nv#{@version}" if @version
-        new_banner += "\n\nOptions:" if @accept_options
+      return if @user_specified_banner
 
-        @option_parser.banner=new_banner
+      new_banner = @parent_usage || "Usage: #{::File.basename($0)}"
+      if accept_options?
+        new_banner += case
+          when @commands.empty?
+            " [options]"
+          when @called_command.nil?
+            " [global options]"
+          else
+            " [options for #{@called_command}]"
+        end
       end
+
+      new_banner += " command [command options and args...]" unless @commands.empty?
+
+      if @commands.empty? and !@args.empty?
+        new_banner += " " 
+        new_banner += @args.map { |arg|
+          if @arg_options[arg].include? :any
+            "[#{arg.to_s}...]"
+          elsif @arg_options[arg].include? :optional
+            "[#{arg.to_s}]"
+          elsif @arg_options[arg].include? :many
+            "#{arg.to_s}..."
+          else
+            arg.to_s
+          end
+        }.join(' ')
+      end
+
+      new_banner += "\n\n#{@description}" if @description
+      new_banner += "\n\nv#{@version}" if @version
+
+      new_banner += @parent_options if @parent_options
+      if accept_options?
+        new_banner += "\n\n" + case
+        when @commands.empty?
+          "Options:"
+        when @called_command.nil? 
+          "Global options:"
+        else
+          "Options for #{@called_command}:"
+        end
+      end
+
+      @option_parser.banner=new_banner
     end
 
     def option_names(*opts_on_args,&block)

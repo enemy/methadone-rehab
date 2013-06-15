@@ -80,6 +80,12 @@ Then /^the option "([^"]*)" should be documented(.*)$/ do |options,qualifiers|
   end
 end
 
+Then /^the following commands should be documented:$/ do |commands|
+  commands.raw.each do |command|
+    step %(the output should match /(?m)Commands:((?!\\n\\n).)*\\n  #{Regexp.escape(command[0])}:/)
+  end
+end
+
 Then /^the banner should be present$/ do
   step %(the output should match /Usage: #{@app_name}/)
 end
@@ -87,6 +93,16 @@ end
 Then /^the banner should document that this app takes options$/ do
   step %(the output should match /\[options\]/)
   step %(the output should contain "Options")
+end
+
+Then /^the banner should document that this app takes global options$/ do
+  step %(the output should match /\[global options\]/)
+  step %(the output should contain "Global options")
+end
+
+Then /^the banner should document that this app takes commands$/ do
+  step %(the output should match /command \[command options and args...\]/)
+  step %(the output should contain "Commands")
 end
 
 Then /^the banner should document that this app's arguments are:$/ do |table|

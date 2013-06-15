@@ -5,7 +5,6 @@ Feature: Support multi-level commands
 
   Background:
     Given the directory "tmp/multigem" does not exist
-    And the directory "tml/multi-gem" does not exist
 
   Scenario: Bootstrap a multi-level app from scratch
     When I successfully run `methadone --commands walk,run,crawl,dance tmp/multigem`
@@ -53,16 +52,76 @@ Feature: Support multi-level commands
     And my app's name is "multigem"
     When I successfully run `bin/multigem --help` with "lib" in the library path
     Then the banner should be present
-    And the banner should document that this app takes options
+    And the banner should document that this app takes global options
+    And the banner should document that this app takes commands
+    And the following commands should be documented:
+      |walk  |
+      |run   |
+      |crawl |
+      |dance |
     And the following options should be documented:
       |--version|
       |--help|
       |--log-level|
 
-
-  @wip
+  @announce
   Scenario: Special characters in subcommands and gem name
-    Given PENDING: code not yet in place
-    When I run `methadone --commands walk,run,crawl_to_bed,tap-dance tmp/multi-gem`
-    Then there should be no errors.
+    Given a directory named "tmp"
+    And the directory "tmp/multigem2" does not exist
+    When I run `methadone --add-lib --commands walk,run,crawl_to_bed,tap-dance,@go-crazy tmp/multigem2`
+    Then the exit status should be 0
+    And the following directories should exist:
+      |tmp/multigem2                            |
+      |tmp/multigem2/bin                        |
+      |tmp/multigem2/lib                        |
+      |tmp/multigem2/lib/multigem2              |
+      |tmp/multigem2/lib/multigem2/commands     |
+      |tmp/multigem2/test                       |
+      |tmp/multigem2/features                   |
+      |tmp/multigem2/features/support           |
+      |tmp/multigem2/features/step_definitions  |
+    And the following directories should not exist:
+      |tmp/multigem2/spec |
+    And the following files should exist:
+      |tmp/multigem2/multigem2.gemspec                             |
+      |tmp/multigem2/Rakefile                                     |
+      |tmp/multigem2/.gitignore                                   |
+      |tmp/multigem2/Gemfile                                      |
+      |tmp/multigem2/bin/multigem2                                |
+      |tmp/multigem2/lib/multigem2/version.rb                     |
+      |tmp/multigem2/lib/multigem2/commands/walk.rb               |
+      |tmp/multigem2/lib/multigem2/commands/run.rb                |
+      |tmp/multigem2/lib/multigem2/commands/crawl_to_bed.rb       |
+      |tmp/multigem2/lib/multigem2/commands/tap_dance.rb          |
+      |tmp/multigem2/lib/multigem2/commands/go_crazy.rb           |
+      |tmp/multigem2/features/multigem2.feature                   |
+      |tmp/multigem2/features/support/env.rb                      |
+      |tmp/multigem2/features/step_definitions/multigem2_steps.rb |
+      |tmp/multigem2/test/tc_something.rb                         |
+    And the file "tmp/multigem2/bin/multigem2" should match /command "walk" => Multigem2::Commands::Walk/
+    And the file "tmp/multigem2/bin/multigem2" should match /command "run" => Multigem2::Commands::Run/
+    And the file "tmp/multigem2/bin/multigem2" should match /command "crawl_to_bed" => Multigem2::Commands::CrawlToBed/
+    And the file "tmp/multigem2/bin/multigem2" should match /command "tap-dance" => Multigem2::Commands::TapDance/
+    And the file "tmp/multigem2/bin/multigem2" should match /command "@go-crazy" => Multigem2::Commands::GoCrazy/
+    Given I cd to "tmp/multigem2"
+    And my app's name is "multigem2"
+    When I successfully run `bin/multigem2 --help`
+    Then the banner should be present
+    And the banner should document that this app takes global options
+    And the banner should document that this app takes commands
+    And the following commands should be documented:
+      |walk         |
+      |run          |
+      |crawl_to_bed |
+      |tap-dance    |
+      |@go-crazy    |
+    And the following options should be documented:
+      |--version|
+      |--help|
+      |--log-level|
+    When I successfully run `bin/multigem2 tap-dance -h`
+    Then the banner should be present
+    And the banner should document that this app takes global options
+    And the banner should document that this app takes options
+    And the output should match /--help.*Show 'tap-dance' command help/
 

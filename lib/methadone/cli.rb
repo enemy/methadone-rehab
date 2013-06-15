@@ -102,5 +102,10 @@ module Methadone
       name.split(/-/).map(&:capitalize).collect{ |segment| segment.split(/_/).map(&:capitalize).join('') }.join('::')
     end
 
+    def normalize_command(cmd)
+      #Note: not i18n-safe
+      cmd.tr('A-Z','a-z').gsub(/[^a-z0-9_]/,'_').sub(/^_*/,'')
+    end
+
   end
 end

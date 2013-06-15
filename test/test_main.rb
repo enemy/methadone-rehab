@@ -13,7 +13,6 @@ class TestMain < BaseTest
     $stdout = StringIO.new
     @logged = StringIO.new
     @custom_logger = Logger.new(@logged)
-    $pry = false
 
     @original_home = ENV['HOME']
     fake_home = '/tmp/fake-home'
@@ -283,8 +282,6 @@ class TestMain < BaseTest
       options[:bar] = 'BAR'
       on("--foo")
       on("--bar")
-
-      $pry = true
     }
     When run_go_safely
     Then {
