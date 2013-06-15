@@ -321,6 +321,24 @@ module Methadone
     #                            two options: the first is the CLI app name, and the second is the version string
     def version(version,version_options={})
       opts.version(version)
+      if version_options.kind_of?(Symbol)
+        case version_options
+        when :terse
+          version_options = {
+            :custom_docs => "Show version",
+            :format => '%0.0s%s',
+            :compact => true
+          }
+        when :basic
+          version_options = {
+            :custom_docs => "Show version info",
+            :compact => true
+          }
+        else
+          version_options = version_options.to_s
+        end
+      end
+
       if version_options.kind_of?(String)
         version_options = { :custom_docs => version_options }
       end
