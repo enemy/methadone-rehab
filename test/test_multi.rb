@@ -19,6 +19,7 @@ class TestMulti < BaseTest
       on '-s', '--silly-walk'
       on '-d', '--direction DIRECTION', Integer, "Compass cardinal direction"
       arg "distance", "How far to walk"
+      
     end
     class Run
       include Methadone::Main
@@ -154,7 +155,7 @@ class TestMulti < BaseTest
     Then main_should_not_be_called
     And help_shown
     And {
-      $stdout.string.should match /You must specify a command/
+      assert_logged_at_error("You must specify a command")
     }
   end
 

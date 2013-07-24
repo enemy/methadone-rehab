@@ -65,10 +65,22 @@ When /^I get help for "([^"]*)"$/ do |app_name|
   step %(I run `#{app_name} --help`)
 end
 
+When /^I get help for "([^"]*)" subcommand "([^"]*)"$/ do |app_name,subcommands|
+  @app_name = app_name
+  @subcommands = subcommands.split(/\s+/)
+  step %(I run `#{app_name} #{subcommands} --help`)
+end
+
 Then /^the following options should be documented:$/ do |options|
   options.raw.each do |option|
     step %(the option "#{option[0]}" should be documented #{option[1]})
   end
+end
+
+Then /^there should be (\d+) options listed$/ do |option_count|
+  match = all_output.match(/(?m)Options:\n((?:(?!\n\n)..)*)(?:\n\n|$)/)
+  real_option_count = match[1].chomp.split(/\n/).select {|l| l =~ /^ *-/}.length
+  real_option_count.should == option_count.to_i
 end
 
 Then /^the option "([^"]*)" should be documented(.*)$/ do |options,qualifiers|
@@ -80,10 +92,22 @@ Then /^the option "([^"]*)" should be documented(.*)$/ do |options,qualifiers|
   end
 end
 
+Then /^the following global options should be documented:$/ do |options|
+  options.raw.each do |option|
+    step %(the output should match /(?m)Global options:((?!\\n\\n).)*\\n +#{Regexp.escape(option[0])}/)
+  end
+end
+
 Then /^the following commands should be documented:$/ do |commands|
   commands.raw.each do |command|
     step %(the output should match /(?m)Commands:((?!\\n\\n).)*\\n  #{Regexp.escape(command[0])}:/)
   end
+end
+
+Then /^there should be (\d+) command listed$/ do |command_count|
+  match = all_output.match(/(?m)Commands:\n((?:  [^\n]*\n)+)(\n|\z)/)
+  real_command_count = match[1].chomp.split(/\n/).length
+  real_command_count.should == command_count.to_i.should
 end
 
 Then /^the banner should be present$/ do
@@ -102,25 +126,50 @@ end
 
 Then /^the banner should document that this app takes commands$/ do
   step %(the output should match /command \[command options and args...\]/)
-  step %(the output should contain "Commands")
+  step %(the output should contain "\\nCommands:")
 end
 
 Then /^the banner should document that this app's arguments are:$/ do |table|
   expected_arguments = table.raw.map { |row|
     option = row[0]
-    option = "[#{option}]" if row[1] == 'optional' || row[1] == 'which is optional'
+    option = "#{option}..." if row[1] =~ /(?:which can take )?(many|any)( values)?/
+    option = "[#{option}]" if row[1] =~ /(which is optional|which can take any( values)?|optional|any)/
     option
   }.join(' ')
   step %(the output should contain "#{expected_arguments}")
 end
 
+Then /^there should be (\d+) arguments? listed$/ do |arg_count|
+  match = all_output.match(/(?m)\nArguments:\n((?:    [^\n]*\n)+)(?:\n|\z)/)
+  real_arg_count = match[1].chomp.split(/\n    (?=[^ ])/).length
+  real_arg_count.should == arg_count.to_i
+end
+
+Then /^the argument "([^"]*)" should be documented(.*)$/ do |arg,qualifiers|
+  if qualifiers.strip == "which is optional"
+    arg += " (optional)"
+  end
+  step %(the output should match /(?m)Arguments:((?!\\n\\n).)*\\n    #{Regexp.escape(arg)}/)
+end
+
+Then /^the following arguments should be documented:$/ do |args|
+  args.raw.each do |arg|
+    step %(the argument "#{arg[0]}" should be documented #{arg[1]})
+  end
+end
+
 Then /^the banner should document that this app takes no options$/ do
   step %(the output should not contain "[options]")
-  step %(the output should not contain "Options")
+  step %(the output should not contain "^Options:")
 end
 
 Then /^the banner should document that this app takes no arguments$/ do
   step %(the output should match /Usage: #{@app_name}\\s*\(\\[options\\]\)?$/)
+end
+
+Then /^the banner should document that this app takes no commands$/ do
+  step %(the output should not match /command \[command options and args...\]/)
+  step %(the output should not contain "\\nCommands:")
 end
 
 Then /^the banner should include the version$/ do

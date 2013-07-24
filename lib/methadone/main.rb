@@ -1,6 +1,5 @@
 require 'optparse'
 require 'yaml'
-require 'pry'
 begin
   Module.const_get('BasicObject')
   # We are 1.9.x
@@ -124,7 +123,7 @@ module Methadone
     #        allow them to bubble up.  If false, they will be caught and handled as normal.
     #        This does *not* affect Methadone::Error exceptions; those will NOT leak through.
     def leak_exceptions(leak)
-      @leak_exceptions = leak
+      @@leak_exceptions = leak
     end
 
     # Print the usage help if the command is run without any options or arguments.
@@ -184,13 +183,16 @@ module Methadone
       if opts.commands.empty?
         opts.parse!
         opts.check_args!
+        opts.check_for_required_options!
         result = call_main
       else
         opts.parse_to_command! # Leaves unknown args and options in once it encounters a non-option.
+        opts.check_for_required_options!
         if opts.selected_command
           result = call_provider
         else
-          puts "You must specify a command\n"
+          logger.error "You must specify a command"
+          puts ""
           puts opts.help
           exit 64
         end
@@ -455,7 +457,9 @@ module Methadone
 
     # Handle calling main and trapping any exceptions thrown
     def call_main
-      @main_block.call(*ARGV)
+      # Backwards compatibility ensured by adding ::ARGV
+      # TBD: rework spec so that unspecified args need to be retrieved from ARGV directly and not just passed into main
+      @main_block.call(*(opts.args_for_main+::ARGV))
     rescue Methadone::Error => ex
       raise ex if ENV['DEBUG']
       logger.error ex.message unless no_message? ex
@@ -464,7 +468,7 @@ module Methadone
       raise
     rescue => ex
       raise ex if ENV['DEBUG']
-      raise ex if @leak_exceptions
+      raise ex if @@leak_exceptions
       logger.error ex.message unless no_message? ex
       70 # Linux sysexit code for internal software error
     end
@@ -499,25 +503,92 @@ module Methadone
       @accept_options = false
       @args = []
       @arg_options = {}
+      @arg_filters = {}
       @arg_documentation = {}
+      @args_by_name = {}
       @description = nil
       @version = nil
       @called_command = nil
       @parent_usage = nil
       @option_chain = nil
+      @options_used = []
+      @option_sigs = {}
+      @conflict_rules = {}
       document_help
     end
 
     def check_args!
-      ::Hash[@args.zip(::ARGV)].each do |arg_name,arg_value|
-        if @arg_options[arg_name].include? :required
-          if arg_value.nil?
-            message = "'#{arg_name.to_s}' is required"
-            message = "at least one " + message if @arg_options[arg_name].include? :many
-            raise ::OptionParser::ParseError,message
+      arg_allocation_map = @args.map {|arg_name| @arg_options[arg_name].include?(:required) ? 1 : 0} 
+      
+      arg_count = ::ARGV.length - arg_allocation_map.reduce(0,&:+)
+      if arg_count > 0
+        @args.each.with_index do |arg_name,i|
+          if (@arg_options[arg_name] & [:many,:any]).length > 0
+            arg_allocation_map[i] += arg_count
+            break
+          elsif @arg_options[arg_name].include? :optional
+            arg_allocation_map[i] += 1
+            arg_count -= 1
+            break if arg_count == 0
           end
         end
       end
+
+      ::Hash[@args.zip(arg_allocation_map)].each do |arg_name,arg_count|
+        if not (@arg_options[arg_name] & [:many,:any]).empty?
+          arg_value = ::ARGV.shift(arg_count)
+        else
+          arg_value = (arg_count == 1) ? ::ARGV.shift : nil
+        end
+
+        if @arg_options[arg_name].include? :required and arg_value.nil?
+          message = "'#{arg_name.to_s}' is required"
+          raise ::OptionParser::ParseError,message
+        elsif @arg_options[arg_name].include?(:many) and arg_value.empty? 
+          message = "at least one '#{arg_name.to_s}' is required"
+          raise ::OptionParser::ParseError,message
+        end
+
+        unless arg_value.nil? or arg_value.empty? or @arg_filters[arg_name].empty?
+          match = false
+          msg = ''
+          @arg_filters[arg_name].each do |filter| 
+            if not (@arg_options[arg_name] & [:many,:any]).empty?
+              if filter.respond_to? :include?
+                invalid_values = (filter | arg_value) - filter
+              elsif filter.is_a? ::Regexp
+                invalid_values = arg_value - arg_value.grep(filter)
+              end
+              if invalid_values.empty?
+                match = true
+                break
+              end
+              msg = "The following value(s) were invalid: '#{invalid_values.join(' ')}'"
+            else
+              if filter.respond_to? :include?
+                if filter.include? arg_value
+                  match = true
+                  break
+                end
+              elsif filter.is_a?(::Regexp)
+                if arg_value =~ filter
+                  match = true
+                  break
+                end
+              end
+              msg = "'#{arg_value}' is invalid"
+            end
+          end
+
+          raise ::OptionParser::ParseError, "#{arg_name}: #{msg}" unless match
+
+        end
+        @args_by_name[arg_name] = arg_value
+      end
+    end
+
+    def args_for_main
+      @args.map {|name| @args_by_name[name]}
     end
 
     # If invoked as with OptionParser, behaves the exact same way.
@@ -525,21 +596,78 @@ module Methadone
     # to the constructor will be used to store
     # the parsed command-line value.  See #opts in the Main module
     # for how that works.
+    # Returns reference to the option for exclusive and mutual
     def on(*args,&block)
-      @accept_options = true
+
+      # Group together any of the hash arguments
+      (hashes, args) = args.partition {|a| a.respond_to?(:keys)}
+      on_opts = hashes.reduce({}) {|h1,h2| h1.merge(h2)}
+
+      # Determine scope of args
+      scope = args.delete(:global) || :local
+      @option_defs ||= {:local => [],:global => []} 
+
       args = add_default_value_to_docstring(*args)
-      if block
-        @option_parser.on(*args,&block)
-      else
-        opt_names = option_names(*args)
-        @option_parser.on(*args) do |value|
-          opt_names.each do |name| 
-            @options[name] = value 
-            @options[name.to_s] = value 
-          end
+      sig = option_signature(args)
+      opt_names = option_names(*args)
+      
+      opt_names.each do |name|
+        @option_sigs[name] = sig
+      end
+
+      block ||= Proc.new do |value|
+        opt_names.each do |name| 
+          @options[name] = value
         end
       end
+      conflict_wrapper = Proc.new do |value|
+        check_for_conflict! opt_names
+        block.call(value)
+      end
+
+      opt = @option_parser.define(*args,&conflict_wrapper)
+      @option_defs[scope] << opt
+
+      set_conflict_rules_for(opt_names,on_opts)
+
+      @accept_options = true
       set_banner
+    end
+
+    def set_conflict_rules_for(names,rules_source)
+      rule_keys = [:excludes, :requires]
+      rules = Hash[rule_keys.zip(rules_source.values_at(*rule_keys))].reject{|k,v| v.nil?}
+      return if rules.empty?
+
+      names.each do |name|
+        @conflict_rules[name] = rules
+      end
+    end
+
+    def check_for_conflict!(opt_names)
+      opt_names.each do |name| 
+        @options_used << name
+      end
+      name = opt_names.first
+      exclude = @conflict_rules.fetch(name,{}).fetch(:excludes,nil)
+      return unless exclude
+
+      exclude = [exclude].flatten
+      violation = (exclude & @options_used)
+      unless violation.empty?
+        raise OptionParser::OptionConflict, "cannot be used if already using #{@option_sigs[violation.first]}"
+      end
+    end
+
+    def check_for_required_options!
+      requirers = @options_used.select {|name| @conflict_rules.fetch(name,{}).key?(:requires)}
+      requirers.each do |name|
+        required = [@conflict_rules[name][:requires]].flatten
+        violation = required - @options_used
+        unless violation.empty?
+          raise OptionParser::OptionConflict.new("Missing option #{@option_sigs[violation.first]} required by option #{@option_sigs[name]}")
+        end
+      end
     end
 
     # Specify an acceptable command that will be hanlded by the given command provider
@@ -565,9 +693,8 @@ module Methadone
       options << :one unless options.include?(:any) || options.include?(:many)
       @args << arg_name
       @arg_options[arg_name] = options
-      options.select(&STRINGS_ONLY).each do |doc|
-        @arg_documentation[arg_name] = doc + (options.include?(:optional) ? " (optional)" : "")
-      end
+      @arg_documentation[arg_name]= options.select(&STRINGS_ONLY)
+      @arg_filters[arg_name] = options.select {|o| o.is_a?(Array) or o.is_a?(Range) or o.is_a?(::Regexp)}
       set_banner
     end
 
@@ -622,10 +749,12 @@ module Methadone
       if @commands.empty? and ! @arg_documentation.empty?
         @option_parser.separator ''
         @option_parser.separator "Arguments:"
-        @option_parser.separator ''
         @args.each do |arg|
-          @option_parser.separator "    #{arg}"
-          @option_parser.separator "        #{@arg_documentation[arg]}"
+          option_tag = @arg_options[arg].include?(:optional) ? ' (optional)' : ''
+          @option_parser.separator "    #{arg}#{option_tag}"
+          @arg_documentation[arg].each do |doc|
+            @option_parser.separator "        #{doc}"
+          end
         end
       end
       unless @commands.empty?
@@ -636,6 +765,7 @@ module Methadone
           @option_parser.separator "  #{ "%-#{padding}s" % (name.to_s+':')} #{provider.description}"
         end
       end
+      @option_parser.separator ''
 
     end
 
@@ -644,7 +774,7 @@ module Methadone
     end
 
     def option_chain
-      self.help.gsub(/\A.*?(\n\n(Global options:|Options for).*?)(\n\nCommand.*|\n\nArguments.*|)\Z/m) {$1}
+      self.help.gsub(/\A.*?(\n\n(Global options:|Options [f]or).*?)(\n\nCommand.*|\n\nArguments.*|)\Z/m) {$1}
     end
 
     def extend_help_from_parent(parent_opts)
@@ -664,6 +794,10 @@ module Methadone
       @accept_options or not (@called_command.nil? or @option_parser.top.list.empty?)
     end
 
+    def global_options?
+      ! @global_options.empty
+    end
+
     def document_help
       @option_parser.on("-h","--help","Show command line help") do 
         puts @option_parser.to_s
@@ -675,6 +809,7 @@ module Methadone
     def add_default_value_to_docstring(*args)
       default_value = nil
       option_names_from(args).each do |option|
+        option = option.sub(/\A\[no-\]/,'')
         default_value = (@options[option.to_s] || @options[option.to_sym]) if default_value.nil?
       end
       if default_value.nil?
@@ -688,8 +823,12 @@ module Methadone
       args.select(&STRINGS_ONLY).select { |_| 
         _ =~ /^\-/ 
       }.map { |_| 
-        _.gsub(/^\-+/,'').gsub(/\s.*$/,'') 
+        _.gsub(/^\-+/,'').gsub(/\s.*$/,'')
       }
+    end
+
+    def option_signature(args)
+      args.select(&STRINGS_ONLY).select {|s| s =~ /\A-/}.join('|')
     end
 
     def set_banner
@@ -753,7 +892,7 @@ module Methadone
         else
           nil
         end
-      }.reject(&:nil?)
+      }.reject(&:nil?).map {|name| [name,name.to_s]}.flatten
     end
 
     STRINGS_ONLY = lambda { |o| o.kind_of?(::String) }
@@ -761,5 +900,8 @@ module Methadone
   end
 
   InvalidProvider = Class.new(TypeError)
+
+  OptionParser::OptionConflict = Class.new(OptionParser::ParseError)
+  OptionParser::MissingRequiredOption = Class.new(OptionParser::ParseError)
 
 end
