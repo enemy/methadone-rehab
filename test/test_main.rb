@@ -54,19 +54,22 @@ class TestMain < BaseTest
     Then main_shouldve_been_called
   end
 
-  test_that "my main block gets the command-line parameters" do
+  test_that "my main block does not get command-line parameters that were not specified by args, but they are still available in ARGV" do
     Given {
       @params = []
+      @argv = []
       main do |param1,param2,param3|
         @params << param1
         @params << param2
         @params << param3
+        @argv = ::ARGV
       end
       set_argv %w(one two three)
     }
     When run_go_safely
     Then {
-      @params.should == %w(one two three)
+      @params.should == [nil,nil,nil]
+      @argv.should == %w(one two three)
     }
   end
 
@@ -85,16 +88,20 @@ class TestMain < BaseTest
   test_that "my main block can ask for arguments that it might not receive" do
     Given {
       @params = []
+      @argv = []
+      arg 'param1'
       main do |param1,param2,param3|
         @params << param1
         @params << param2
         @params << param3
+        @argv = ::ARGV
       end
       set_argv %w(one two)
     }
     When run_go_safely
     Then {
-      @params.should == ['one','two',nil]
+      @params.should == ['one',nil,nil]
+      @argv.should == ['two']
     }
   end
 
@@ -449,7 +456,7 @@ class TestMain < BaseTest
 
       on("-s")
     }
-
+    When {opts}
     Then {
       opts.banner.should == 'FOOBAR'
     }
@@ -500,11 +507,12 @@ class TestMain < BaseTest
     Given  {
       main{}
       version "0.0.1"
-      set_argv(['--verison'])
+      set_argv(['--version'])
     }
     Then run_go_safely
     And {
       opts.to_s.should match /Show help\/version info/m
+      $stdout.string.should match /^#{@version}$/
     }
   end
 
@@ -533,6 +541,7 @@ class TestMain < BaseTest
       $stdout.string.should match /^#{::File.basename($0)} version #{@version}$/
     }
   end
+
   test_that "when I specify a version with :terse format, only the version show up and the help is 'show version'" do
     @version = "2.0.9.pre"
     Given {
@@ -838,7 +847,6 @@ class TestMain < BaseTest
 
   test_that "arguments can be given valid values" do
     Given {
-      $pry = true
       arg "foo", %w(one two three)
       @foo = nil
       main do |foo|
@@ -870,7 +878,6 @@ class TestMain < BaseTest
 
   test_that "arguments that take multiple values can be given valid values" do
     Given {
-      $pry = true
       arg "foo", :many, %w(one two three)
       @foo = nil
       main do |foo|
@@ -901,7 +908,6 @@ class TestMain < BaseTest
   end
   test_that "arguments can be given regexp filters" do
     Given {
-      $pry = true
       arg "foo", /^th/
       @foo = nil
       main do |foo|
@@ -933,7 +939,6 @@ class TestMain < BaseTest
 
   test_that "arguments that take multiple values can be given regexp filters" do
     Given {
-      $pry = true
       arg "foo", :many, /^th/
       @foo = nil
       main do |foo|
@@ -1017,6 +1022,30 @@ class TestMain < BaseTest
     }
     When {
       set_argv %w(-f -s)
+      @code = lambda { go! }
+    }
+    Then {
+      assert_exits(64,&@code)
+      assert_logged_at_error("parse error: -s cannot be used if already using -f|--first")
+      $stdout.string.should match /Usage:/
+    }
+  end
+
+  test_that "options can be mutually exclusive, which raise an error if both are used - order doesn't matter" do
+    Given {
+
+      @first = nil
+      @second = nil
+      reset!
+      main do
+        @first = options[:f]
+        @second = options[:s]
+      end
+      on("-f", "--first", "First Option")
+      on("-s", "Second Option", :excludes => :f)
+    }
+    When {
+      set_argv %w(-s -f)
       @code = lambda { go! }
     }
     Then {
@@ -1111,7 +1140,8 @@ private
       @switch = nil
       @flag = nil
       @args = nil
-      main do |*args|
+      arg :args, :any
+      main do |args|
         @switch = options[:switch]
         @flag = options[:flag]
         @args = args

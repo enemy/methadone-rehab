@@ -40,17 +40,28 @@ class TestMulti < BaseTest
       options[:lang] = 'es'
 
       main do 
-        case options[:lang]
+        binding.pry if $pry
+        
+        msg = case options[:lang]
         when 'en'
-          puts 'Hello'
+          'Hello'
         when 'fr'
-          puts 'Bonjour'
+          'Bonjour'
         when 'es'
-          puts 'Hola'
+          'Hola'
         else
-          puts '????'
+          '????'
         end
+
+        msg = msg.upcase if options[:yell]
+        puts msg
       end
+    end
+
+    class Say
+      include Methadone::Main
+      on '--yell', "Be loud", :global
+      command 'greeting' => ::TestMulti::Commands::Greet
     end
   end
 
@@ -199,12 +210,28 @@ class TestMulti < BaseTest
     }
     When run_go_safely
     Then {
-      $stdout.string.should match /Usage: #{::File.basename($0)} \[global options\] walk \[options\] distance/
+      $stdout.string.should match /Usage: #{::File.basename($0)} walk \[options\] distance/
     }
   end
 
   someday_test_that "rc_file can specify defaults for each subcommand" do
   end
+
+  test_that "subcommand help shows global options from parent" do
+    Given app_has_subcommands('walk','run')
+    And {
+      version '1.2.3'
+      set_argv %w(walk -h)
+      on '-w','--wow', :global, "This is a global option"
+    }
+    When run_go_safely
+    Then {
+      $stdout.string.should match /Usage: #{::File.basename($0)} \[global options\] walk \[options\] distance/
+      $stdout.string.should match /(?m)Global options:\n.*-w, --wow *This is a global option/
+      $stdout.string.should_not match /(?m)Global options:\n.*-v, --version/
+    }
+  end
+
 
   test_that "subcommands have access to global options" do
     Given app_has_subcommands('greet')
@@ -222,7 +249,38 @@ class TestMulti < BaseTest
     }
   end
 
+  test_that "subcommands of subcommands help shows parents global options" do
+    Given app_is_three_layers_deep_with_middle_layer_having_global_options
+    And {
+      set_argv %w(say --yell greeting)
+    }
+    When run_go_safely
+    Then {
+      cmd_opts = opts.commands['say'].opts.commands['greeting'].opts
+      cmd_opts.to_s.should match /say \[options [f]or say\] greeting/
+      cmd_opts.to_s.should match /(?m)Options [f]or say:\n.*--yell *Be loud/
+      cmd_opts.to_s.should_not match /\[global options\]/
+      cmd_opts.to_s.should_not match /Global options:/
+      $stdout.string.should match /HOLA/
+    }
+  end
 
+  test_that "subcommands of subcommands help shows parents global options and base global options" do
+    Given app_is_three_layers_deep_with_middle_layer_having_global_options
+    And {
+      on '-l', '--lang LANG','Set the language', :global
+      set_argv %w(-l en say --yell greeting)
+    }
+    When run_go_safely
+    Then {
+      cmd_opts = opts.commands['say'].opts.commands['greeting'].opts
+      cmd_opts.to_s.should match /\[global options\] say \[options [f]or say\] greeting/
+      cmd_opts.to_s.should match /(?m)Options [f]or say:\n.*--yell *Be loud/
+      cmd_opts.to_s.should match /(?m)Global options:\n.*-l, --lang LANG *Set the language/
+      $stdout.string.should match /HELLO/
+    }
+  end
+  
 private
 
   def commands_should_include(cmd) 
@@ -244,6 +302,18 @@ private
       end
     }
   end
+
+  def app_is_three_layers_deep_with_middle_layer_having_global_options
+    proc {
+      # Requires special resetting to ensure proper behaviour
+      reset!
+      command 'say' => get_const("TestMulti::Commands::Say")
+      opts.commands['say'].instance_variable_get(:@options).delete_if {|k,v| true}
+      opts.commands['say'].opts.commands['greeting'].instance_variable_get(:@options).delete_if {|k,v| true}
+      opts.commands['say'].opts.commands['greeting'].instance_variable_get(:@options)[:lang] = 'es'
+    }
+  end
+
 
   def help_shown
     proc {assert $stdout.string.include?(opts.to_s),"Expected #{$stdout.string} to contain #{opts.to_s}"}
