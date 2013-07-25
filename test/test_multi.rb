@@ -40,8 +40,6 @@ class TestMulti < BaseTest
       options[:lang] = 'es'
 
       main do 
-        binding.pry if $pry
-        
         msg = case options[:lang]
         when 'en'
           'Hello'
@@ -177,7 +175,8 @@ class TestMulti < BaseTest
       opts.post_setup
     }
     Then {
-      opts.to_s.should match /Commands:.*walk: moves slowly.*run:  moves quickly/m
+      opts.to_s.should match /(?m)Commands:\n.*walk: moves slowly/
+      opts.to_s.should match /(?m)Commands:\n.*run:  moves quickly/
     }
     And {
       opts.to_s.should match /Usage:.*command \[command options and args...\]/

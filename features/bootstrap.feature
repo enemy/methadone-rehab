@@ -50,20 +50,14 @@ Feature: Bootstrap a new command-line app
       |--log-level|
     And the banner should document that this app takes no arguments
     When I successfully run `rake -T -I../../lib`
-    Then the output should contain:
-    """
-    rake clean         # Remove any temporary products.
-    rake clobber       # Remove any generated file.
-    rake clobber_rdoc  # Remove RDoc HTML files
-    rake features      # Run Cucumber features
-    """
-    And the output should contain:
-    """
-    rake rdoc          # Build RDoc HTML files
-    rake release       # Create tag v0.0.1 and build and push newgem-0.0.1.gem to Rubygems
-    rake rerdoc        # Rebuild RDoc HTML files
-    rake test          # Run tests
-    """
+    Then the output should contain "rake clean         # Remove any temporary products"
+    And the output should contain "rake clobber       # Remove any generated file"
+    And the output should contain "rake clobber_rdoc  # Remove RDoc HTML files"
+    And the output should contain "rake features      # Run Cucumber features"
+    And the output should contain "rake rdoc          # Build RDoc HTML files"
+    And the output should contain "rake release       # Create tag v0.0.1 and build and push newgem-0.0.1.gem to Rubygems"
+    And the output should contain "rake rerdoc        # Rebuild RDoc HTML files"
+    And the output should contain "rake test          # Run tests"
     And the output should match /rake install       # Build and install newgem-0.0.1.gem into system gems/
     And the output should match /rake build         # Build newgem-0.0.1.gem into the pkg directory/
     When I run `rake -I../../../../lib`

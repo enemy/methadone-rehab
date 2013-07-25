@@ -579,6 +579,10 @@ module Methadone
     def initialize(option_parser,options)
       @option_parser = option_parser
       @options = options
+      @option_defs ||= {:local => [],:global => []} 
+      @option_sigs = {}
+      @options_used = []
+      @usage_rules = {}
       @commands = {}
       @selected_command = nil
       @user_specified_banner = false
@@ -590,12 +594,6 @@ module Methadone
       @args_by_name = {}
       @description = nil
       @version = nil
-      @called_command = nil
-      @option_chain = nil
-      @options_used = []
-      @option_sigs = {}
-      @usage_rules = {}
-      @option_defs ||= {:local => [],:global => []} 
       @banner_stale = true
       document_help
     end
@@ -625,7 +623,7 @@ module Methadone
         end
       end
 
-      ::Hash[@args.zip(arg_allocation_map)].each do |arg_name,arg_count|
+      @args.zip(arg_allocation_map).each do |arg_name,arg_count|
         if not (@arg_options[arg_name] & [:many,:any]).empty?
           arg_value = ::ARGV.shift(arg_count)
         else
@@ -967,7 +965,7 @@ module Methadone
       return unless @banner_stale
 
       new_banner = base_usage_line
-      new_banner += " [options]" if accept_options? and @commands.empty?
+      new_banner += " [options]" if (@commands.empty? or parent_opts.nil?) and accept_options?
       new_banner += " command [command options and args...]" unless @commands.empty?
 
       if @commands.empty? and !@args.empty?

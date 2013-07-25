@@ -52,7 +52,7 @@ Feature: Support multi-level commands
     And my app's name is "multigem"
     When I successfully run `bin/multigem --help` with "lib" in the library path
     Then the banner should be present
-    And the banner should document that this app takes global options
+    And the banner should document that this app takes options
     And the banner should document that this app takes commands
     And the following commands should be documented:
       |walk  |
@@ -106,7 +106,7 @@ Feature: Support multi-level commands
     And my app's name is "multigem2"
     When I successfully run `bin/multigem2 --help`
     Then the banner should be present
-    And the banner should document that this app takes global options
+    And the banner should document that this app takes options
     And the banner should document that this app takes commands
     And the following commands should be documented:
       |walk         |
@@ -122,5 +122,4 @@ Feature: Support multi-level commands
     Then the banner should be present
     And the banner should document that this app takes global options
     And the banner should document that this app takes options
-    And the output should match /--help.*Show 'tap-dance' command help/
 

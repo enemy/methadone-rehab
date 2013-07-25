@@ -178,8 +178,8 @@ end
 
 Then /^there should be a one line summary of what the app does$/ do
   output_lines = all_output.split(/\n/)
-  output_lines.should have_at_least(3).items
-  # [0] is our banner, which we've checked for
-  output_lines[1].should match(/^\s*$/)
-  output_lines[2].should match(/^\w+\s+\w+/)
+  output_lines.should have_at_least(4).items
+  # [0] is a blank line, [1] is our banner, which we've checked for
+  output_lines[2].should match(/^\s*$/)
+  output_lines[3].should match(/^\w+\s+\w+/)
 end
