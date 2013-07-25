@@ -78,7 +78,7 @@ Then /^the following options should be documented:$/ do |options|
 end
 
 Then /^there should be (\d+) options listed$/ do |option_count|
-  match = all_output.match(/(?m)Options:\n((?:(?!\n\n)..)*)(?:\n\n|$)/)
+  match = all_output.match(/(?m)Options:\n((?:(?!\n\n).)*)(?:\n\n|\z)/)
   real_option_count = match[1].chomp.split(/\n/).select {|l| l =~ /^ *-/}.length
   real_option_count.should == option_count.to_i
 end
