@@ -398,6 +398,12 @@ module Methadone
       @options ||= {}
     end
 
+    def global_options
+      (@parent.nil? ? {} : @parent.global_options).merge(
+        opts.global_options
+      )
+    end
+
     # Set the version of your app so it appears in the
     # banner.  This also adds --version as an option to your app which,
     # when used, will act just like --help (see version_options to control this)
@@ -466,7 +472,7 @@ module Methadone
     def set_parent(parent)
       @parent = parent
       if parent
-        @options.merge!(parent.options)
+        @options.merge!(parent.global_options)
         opts.extend_help_from_parent(parent.opts)
       end
     end
@@ -605,6 +611,20 @@ module Methadone
     def parent_opts
       @parent_opts || nil
     end
+
+    def global_options
+      global_option_defs = @option_defs.fetch(:global, nil)
+      return {} if global_option_defs.nil?
+
+      keys = global_option_defs.map {|opt_def|
+        [opt_def.long, opt_def.short].
+          flatten.
+          map {|flag| flag.sub(/^--?(\[no-\])?/,'')}.
+          map {|flag| [flag,flag.to_sym]}
+      }.flatten
+      @options.select {|k,v| keys.include? k}
+    end
+
 
     def check_args!
       arg_allocation_map = @args.map {|arg_name| @arg_options[arg_name].include?(:required) ? 1 : 0} 
@@ -843,7 +863,7 @@ module Methadone
     # We need some documentation to appear at the end, after all OptionParser setup
     # has occured, but before we actually start.  This method serves that purpose
     def post_setup
-      if parent_opts and global_opts = parent_opts.global_options_help
+      if parent_opts and not (global_opts = parent_opts.global_options_help).empty?
         @option_parser.separator ''
         global_opts.split("\n").each {|line| @option_parser.separator line}
       end
@@ -871,7 +891,6 @@ module Methadone
       @option_parser.separator ''
     end
 
-
     def extend_help_from_parent(parent_opts)
       self.parent_opts = parent_opts
       @banner_stale = true
@@ -895,13 +914,13 @@ module Methadone
 
     def global_options_help
       msg = []
-      global_options = @option_defs.fetch(:global,[])
-      unless global_options.empty?
+      global_option_defs = @option_defs.fetch(:global,[])
+      unless global_option_defs.empty?
         cmd = parent_opts && parent_opts.selected_command
         opt_lines = [cmd.nil? ? "Global options:\n" : "Options for #{cmd}:\n"]
         width = @option_parser.summary_width 
         indent = @option_parser.summary_indent
-        global_options.each do |opt|
+        global_option_defs.each do |opt|
           opt.summarize({},{},width,width - 1,indent) do |line|
             opt_lines << (line.index($/, -1) ? line : line + $/)
           end
@@ -915,7 +934,6 @@ module Methadone
     def accept_global_options?
       ! @option_defs.fetch(:global,[]).empty?
     end
-
 
   private
 

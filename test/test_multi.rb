@@ -236,7 +236,7 @@ class TestMulti < BaseTest
     Given app_has_subcommands('greet')
     And {
       options[:lang] = 'en'
-      on '-l', '--lang LANG','Set the language'
+      on '-l', '--lang LANG','Set the language', :global
       set_argv %w(-l fr greet)
     }
     When run_go_safely
