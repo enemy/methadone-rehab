@@ -18,7 +18,7 @@ Toward that end, this gem provides:
 * Simplified zero-config logging that is a better-than-<tt>puts</tt> <tt>puts</tt>.
 * Cucumber Steps, built on Aruba, to allow you to test-drive your command-line app development.
 
-=== Methadone 2.0 Improvements
+=== Methadone Clinic 1.0 
 
 Building onto the great foundation that is Methadone 1.3, contributor {Dennis Bell}[http://github.com/dennisjbell/methadone] added the following functionality
 
