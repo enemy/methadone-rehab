@@ -622,9 +622,9 @@ module Methadone
           map {|flag| flag.sub(/^--?(\[no-\])?/,'')}.
           map {|flag| [flag,flag.to_sym]}
       }.flatten
-      @options.select {|k,v| keys.include? k}
+      global_hash = @options.select {|k,v| keys.include? k}
+      global_hash.is_a?(Array) ? Hash[global_hash] : global_hash # Stupid 1.8.7 => 1.9.3 API change of Hash#select
     end
-
 
     def check_args!
       arg_allocation_map = @args.map {|arg_name| @arg_options[arg_name].include?(:required) ? 1 : 0} 

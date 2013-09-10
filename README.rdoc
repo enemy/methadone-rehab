@@ -4,7 +4,7 @@ Author::  Dave Copeland (mailto:davetron5000 at g mail dot com)
 Copyright:: Copyright (c) 2011 by Dave Copeland
 License:: Distributes under the Apache License, see LICENSE.txt in the source distro
 
-{<img src="https://secure.travis-ci.org/dennisjbell/methadone.png" alt="Build Status" />}[http://travis-ci.org/dennisjbell/methadone]
+{<img src="https://secure.travis-ci.org/dennisjbell/methadone-clinic.png" alt="Build Status" />}[http://travis-ci.org/dennisjbell/methadone-clinic]
 
 A smattering of tools to make your command-line apps easily awesome; kick the bash habit without sacrificing any of the power.
 
@@ -33,6 +33,8 @@ Building onto the great foundation that is Methadone 1.3, contributor {Dennis Be
   * Values left in <tt>ARGV</tt> are no longer lost; they now remain in <tt>ARGV</tt> for your application to access.
 * Convenience method <tt>help_if_bare</tt> that if specified, calling your app with no arguments will print help -- very usefull on a multi-level-command based application    
 * <tt>version</tt> now takes optional symbolic arguments of :terse and :basic, providing just the version number or the file and version number respectively
+
+Most, if not all, of these improvements will be merged into the base Methadone project in the near future.
 
 
 == Tutorial
