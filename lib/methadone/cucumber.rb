@@ -71,9 +71,9 @@ When /^I get help for "([^"]*)" subcommand "([^"]*)"$/ do |app_name,subcommands|
   step %(I run `#{app_name} #{subcommands} --help`)
 end
 
-Then /^the following options should be documented:$/ do |options|
-  options.raw.each do |option|
-    step %(the option "#{option[0]}" should be documented #{option[1]})
+Then /^the following (argument|option)s should be documented:$/ do |type,table|
+  table.raw.each do |row|
+    step %(the #{type} "#{row[0]}" should be documented #{row[1]})
   end
 end
 
@@ -92,15 +92,9 @@ Then /^the option "([^"]*)" should be documented(.*)$/ do |options,qualifiers|
   end
 end
 
-Then /^the following global options should be documented:$/ do |options|
-  options.raw.each do |option|
-    step %(the output should match /(?m)Global options:((?!\\n\\n).)*\\n +#{Regexp.escape(option[0])}/)
-  end
-end
-
-Then /^the following commands should be documented:$/ do |commands|
-  commands.raw.each do |command|
-    step %(the output should match /(?m)Commands:((?!\\n\\n).)*\\n  #{Regexp.escape(command[0])}:/)
+Then /^the following (commands|global options) should be documented:$/ do |type, table|
+  table.raw.each do |row|
+    step %(the output should match /(?m)#{type.capitalize}:((?!\\n\\n).)*\\n +#{Regexp.escape(row[0])}/)
   end
 end
 
@@ -150,12 +144,6 @@ Then /^the argument "([^"]*)" should be documented(.*)$/ do |arg,qualifiers|
     arg += " (optional)"
   end
   step %(the output should match /(?m)Arguments:((?!\\n\\n).)*\\n    #{Regexp.escape(arg)}/)
-end
-
-Then /^the following arguments should be documented:$/ do |args|
-  args.raw.each do |arg|
-    step %(the argument "#{arg[0]}" should be documented #{arg[1]})
-  end
 end
 
 Then /^the banner should document that this app takes no options$/ do
