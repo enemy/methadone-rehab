@@ -199,7 +199,7 @@ class TestMain < BaseTest
       end
     }
     Then {
-      assert_raises Methadone::Error do 
+      assert_raises Methadone::Error do
         When run_go!
       end
     }
@@ -340,7 +340,7 @@ class TestMain < BaseTest
       on("--[no-]negatable")
       on("--flag FLAG","-f","Some documentation string")
       on("--flag-with-dashes FOO")
-      on("--other") do 
+      on("--other") do
         options[:some_other] = true
       end
 
@@ -393,7 +393,7 @@ class TestMain < BaseTest
   test_that "I can specify which arguments my app takes and if they are required as well as document them" do
     Given {
       main {}
-      @db_name_desc = any_string 
+      @db_name_desc = any_string
       @user_desc = any_string
       @password_desc = any_string
 
@@ -427,7 +427,7 @@ class TestMain < BaseTest
   test_that "I can specify which arguments my app takes and if they are singular or optional plural" do
     Given {
       main {}
-      
+
       arg :db_name
       arg :user, :required, :one
       arg :tables, :any
@@ -1027,7 +1027,7 @@ class TestMain < BaseTest
     }
     Then {
       assert_exits(0,&@code)
-      @first.should be_true
+      @first.should be_truthy
       @second.should be_nil
     }
   end
@@ -1102,7 +1102,7 @@ class TestMain < BaseTest
     }
     Then {
       assert_exits(0,&@code)
-      @first.should be_true
+      @first.should be_truthy
       @second.should be_nil
       @third.should == 'value'
     }
@@ -1182,7 +1182,7 @@ private
   def main_shouldve_been_called
     Proc.new { assert @called,"Main block wasn't called?!" }
   end
-  
+
   def run_go_safely
     Proc.new { safe_go! }
   end
