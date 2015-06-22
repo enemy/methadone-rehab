@@ -7,6 +7,7 @@ Feature: Bootstrap a new command-line app
     Given the directory "tmp/newgem" does not exist
     And the directory "tmp/new-gem" does not exist
 
+    @wip
   Scenario: Bootstrap a new app from scratch
     When I successfully run `methadone tmp/newgem`
     Then the following directories should exist:
@@ -36,8 +37,9 @@ Feature: Bootstrap a new command-line app
     And the file "tmp/newgem/.gitignore" should match /.DS_Store/
     And the file "tmp/newgem/newgem.gemspec" should match /add_development_dependency\('aruba'/
     And the file "tmp/newgem/newgem.gemspec" should match /add_development_dependency\('rdoc'/
-    And the file "tmp/newgem/newgem.gemspec" should match /add_development_dependency\('rake', '~> 0.9.2'/
+    And the file "tmp/newgem/newgem.gemspec" should match /add_development_dependency\('rake'/
     And the file "tmp/newgem/newgem.gemspec" should match /add_dependency\('methadone'/
+    And the file "tmp/newgem/newgem.gemspec" should include "test-unit" if needed
     And the file "tmp/newgem/newgem.gemspec" should use the same block variable throughout
     Given I cd to "tmp/newgem"
     And my app's name is "newgem"
@@ -50,16 +52,16 @@ Feature: Bootstrap a new command-line app
       |--log-level|
     And the banner should document that this app takes no arguments
     When I successfully run `rake -T -I../../lib`
-    Then the output should contain "rake clean         # Remove any temporary products"
-    And the output should contain "rake clobber       # Remove any generated file"
-    And the output should contain "rake clobber_rdoc  # Remove RDoc HTML files"
-    And the output should contain "rake features      # Run Cucumber features"
-    And the output should contain "rake rdoc          # Build RDoc HTML files"
-    And the output should contain "rake release       # Create tag v0.0.1 and build and push newgem-0.0.1.gem to Rubygems"
-    And the output should contain "rake rerdoc        # Rebuild RDoc HTML files"
-    And the output should contain "rake test          # Run tests"
-    And the output should match /rake install       # Build and install newgem-0.0.1.gem into system gems/
-    And the output should match /rake build         # Build newgem-0.0.1.gem into the pkg directory/
+    Then the output should match /rake clean/
+    And the output should match /rake clobber/
+    And the output should match /rake clobber_rdoc/
+    And the output should match /rake features/
+    And the output should match /rake rdoc/
+    And the output should match /rake release/
+    And the output should match /rake rerdoc/
+    And the output should match /rake test/
+    And the output should match /rake install/
+    And the output should match /rake build/
     When I run `rake -I../../../../lib`
     Then the exit status should be 0
     And the output should match /1 tests, 1 assertions, 0 failures, 0 errors/
@@ -100,22 +102,15 @@ Feature: Bootstrap a new command-line app
     And I cd to "tmp/new-gem"
     And my app's name is "new-gem"
     When I successfully run `bin/new-gem --version` with "lib" in the library path
-    Then the output should contain:
-    """
-    new-gem version 0.0.1
-    """
+    Then the output should match /new-gem version 0/
 
-    @wip
   Scenario: Version flag can be used to only show the app version with a custom format
     Given I successfully run `methadone tmp/new-gem`
     And "bin/new-gem" has configured version to show only the version with a custom format and not help
     And I cd to "tmp/new-gem"
     And my app's name is "new-gem"
     When I successfully run `bin/new-gem --version` with "lib" in the library path
-    Then the output should contain:
-    """
-    new-gem V0.0.1
-    """
+    Then the output should match /new-gem V0/
 
   Scenario: Won't squash an existing dir
     When I successfully run `methadone tmp/newgem`
@@ -166,3 +161,10 @@ Feature: Bootstrap a new command-line app
     And the banner should document that this app's arguments are:
       |app_name|which is required|
     And there should be a one line summary of what the app does
+
+  Scenario: The whole initial state of the app has been staged with git
+    Given I successfully run `methadone -l custom tmp/newgem`
+    And I cd to "tmp/newgem"
+    When I successfully run `git ls-files --others --deleted `
+    Then the output should match /\A\Z/
+

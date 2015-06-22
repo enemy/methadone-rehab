@@ -7,7 +7,7 @@ module Methadone
   #     When I get help for "command_to_run"
   #
   # * Make sure that each option shows up in the help and has *some* sort of documentation.  By default,
-  #   the options won't be re2quired to be negatable.
+  #   the options won't be required to be negatable.
   #
   #     Then the following options should be documented:
   #       |--force|
@@ -166,8 +166,9 @@ end
 
 Then /^there should be a one line summary of what the app does$/ do
   output_lines = all_output.split(/\n/)
-  output_lines.should have_at_least(4).items
-  # [0] is a blank line, [1] is our banner, which we've checked for
+  output_lines.size.should >= 4
+  # [0] is a blank line,
+  # [1] is our banner, which we've checked for
   output_lines[2].should match(/^\s*$/)
   output_lines[3].should match(/^\w+\s+\w+/)
 end
