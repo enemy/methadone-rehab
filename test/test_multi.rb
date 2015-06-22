@@ -19,7 +19,7 @@ class TestMulti < BaseTest
       on '-s', '--silly-walk'
       on '-d', '--direction DIRECTION', Integer, "Compass cardinal direction"
       arg "distance", "How far to walk"
-      
+
     end
     class Run
       include Methadone::Main
@@ -39,7 +39,7 @@ class TestMulti < BaseTest
 
       options[:lang] = 'es'
 
-      main do 
+      main do
         msg = case options[:lang]
         when 'en'
           'Hello'
@@ -118,7 +118,7 @@ class TestMulti < BaseTest
     }
     Then number_of_commands_should_be(0)
     Then {
-      expect(@error).to be_a_kind_of(::Methadone::InvalidProvider)
+      @error.should be_a_kind_of(::Methadone::InvalidProvider)
     }
   end
 
@@ -132,7 +132,7 @@ class TestMulti < BaseTest
     }
     When run_go_safely
     Then {
-      expect(opts.selected_command).to eq('walk')
+      opts.selected_command.should eq('walk')
     }
   end
 
@@ -144,9 +144,9 @@ class TestMulti < BaseTest
     }
     When run_go_safely
     Then {
-      expect(opts.command_names).to include('walk')
-      expect(opts.command_names).to include('run')
-      expect($stdout.string).to match(/walk called/)
+      opts.command_names.should include('walk')
+      opts.command_names.should include('run')
+      $stdout.string.should match(/walk called/)
     }
     And number_of_commands_should_be(2)
   end
@@ -279,16 +279,16 @@ class TestMulti < BaseTest
       $stdout.string.should match /HELLO/
     }
   end
-  
+
 private
 
-  def commands_should_include(cmd) 
-    proc { expect(opts.commands.keys).to include(cmd)}
+  def commands_should_include(cmd)
+    proc { opts.commands.keys.should include(cmd) }
   end
 
   def number_of_commands_should_be(num)
     proc { opts.commands.keys.length.should be(num)}
-  end    
+  end
 
   def provider_for_command(cmd)
     opts.commands[cmd]
@@ -365,7 +365,7 @@ private
   def main_shouldve_been_called
     Proc.new { assert @main_called,"Main block wasn't called?!" }
   end
-  
+
   def run_go_safely
     Proc.new { safe_go! }
   end
@@ -401,5 +401,5 @@ private
 
     Object.module_eval("::#{$1}", __FILE__, __LINE__)
   end
-  
+
 end

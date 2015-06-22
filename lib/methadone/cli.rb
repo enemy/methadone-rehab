@@ -106,5 +106,19 @@ module Methadone
       cmd.tr('A-Z','a-z').gsub(/[^a-z0-9_]/,'_').sub(/^_*/,'')
     end
 
+    def render_license_partial(partial)
+      ERB.new(File.read(template_dir('full/'+partial))).result(binding).strip 
+    end
+
+    def gemspec
+      @gemspec || @gemspec=_get_gemspec
+    end
+    private
+    def _get_gemspec
+      files=Dir.glob("*.gemspec")
+      raise "Multiple gemspec files" if files.size>1
+      raise "No gemspec file" if files.size < 1
+      Gem::Specification::load(files.first)
+    end
   end
 end

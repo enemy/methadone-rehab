@@ -1,7 +1,7 @@
 require 'base_test'
 require 'methadone'
 
-class TestSH < Clean::Test::TestCase
+class TestSH < BaseTest
   include Methadone::SH
   include Methadone::CLILogging
 
@@ -143,7 +143,7 @@ class TestSH < Clean::Test::TestCase
       use_capturing_logger
       @command = test_command("foo")
       @block_called = false
-    } 
+    }
     When {
       @exit_code = sh @command do
         @block_called = true
@@ -160,7 +160,7 @@ class TestSH < Clean::Test::TestCase
       use_capturing_logger
       @command = test_command("foo")
       @block_called = false
-    } 
+    }
     When {
       @exit_code = sh @command, :expected => [2] do
         @block_called = true
@@ -180,7 +180,7 @@ class TestSH < Clean::Test::TestCase
           @command = test_command("foo")
           @block_called = false
           @exitstatus_received = nil
-        } 
+        }
         When {
           @exit_code = self.send(method,@command,:expected => expected) do |_,_,exitstatus|
             @block_called = true
@@ -242,7 +242,7 @@ class TestSH < Clean::Test::TestCase
     }
   end
 
-  test_that "sh! runs a command that will fail and includes an error message that appears in the exception" do 
+  test_that "sh! runs a command that will fail and includes an error message that appears in the exception" do
     Given {
       use_capturing_logger
       @command = test_command("foo")
@@ -261,8 +261,8 @@ class TestSH < Clean::Test::TestCase
 
   class MyTestApp
     include Methadone::SH
-    def initialize(logger)
-      set_sh_logger(logger)
+    def initialize(logger=nil)
+      set_sh_logger(logger) if logger
     end
   end
 
@@ -277,6 +277,19 @@ class TestSH < Clean::Test::TestCase
     }
     Then {
       assert_successful_command_execution(@exit_code,@logger,@command,test_command_stdout)
+    }
+  end
+
+  test_that "when we don't have CLILogging included and fail to provide a logger, an exception is thrown" do
+    Given {
+      @test_app = MyTestApp.new
+      @command = test_command
+    }
+    When {
+      @code = lambda { @test_app.sh @command }
+    }
+    Then {
+      exception = assert_raises(StandardError,&@code)
     }
   end
 
