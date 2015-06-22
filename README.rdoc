@@ -4,7 +4,7 @@ Author::  Dave Copeland (mailto:davetron5000 at g mail dot com)
 Copyright:: Copyright (c) 2011 by Dave Copeland
 License:: Distributes under the Apache License, see LICENSE.txt in the source distro
 
-{<img src="https://secure.travis-ci.org/dennisjbell/methadone-clinic.png" alt="Build Status" />}[http://travis-ci.org/dennisjbell/methadone-clinic]
+{<img src="https://secure.travis-ci.org/enemy/methadone-rehab.png" alt="Build Status" />}[http://travis-ci.org/enemy/methadone-rehab]
 
 A smattering of tools to make your command-line apps easily awesome; kick the bash habit without sacrificing any of the power.
 
