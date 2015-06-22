@@ -18,7 +18,11 @@ Toward that end, this gem provides:
 * Simplified zero-config logging that is a better-than-<tt>puts</tt> <tt>puts</tt>.
 * Cucumber Steps, built on Aruba, to allow you to test-drive your command-line app development.
 
-=== Methadone Clinic 1.0 
+=== Methadone Rehab 1.9.1
+
+TODO
+
+=== Methadone Clinic 1.0
 
 Building onto the great foundation that is Methadone 1.3, contributor {Dennis Bell}[http://github.com/dennisjbell/methadone] added the following functionality
 
@@ -31,7 +35,7 @@ Building onto the great foundation that is Methadone 1.3, contributor {Dennis Be
   * Allows arguments to meet filter requirements like options
   * Allocation of arguments are now as-needed, providing values to arguments that need an argument before filling the first greedy argument with the rest of the available values
   * Values left in <tt>ARGV</tt> are no longer lost; they now remain in <tt>ARGV</tt> for your application to access.
-* Convenience method <tt>help_if_bare</tt> that if specified, calling your app with no arguments will print help -- very usefull on a multi-level-command based application    
+* Convenience method <tt>help_if_bare</tt> that if specified, calling your app with no arguments will print help -- very usefull on a multi-level-command based application
 * <tt>version</tt> now takes optional symbolic arguments of :terse and :basic, providing just the version number or the file and version number respectively
 
 Most, if not all, of these improvements will be merged into the base Methadone project in the near future.
@@ -112,7 +116,7 @@ While backtick and <tt>%x[]</tt> are nice for compact, bash-like scripting, they
 * You have no access to the standard error
 * You really want to log: the command, the output, and the error so that for cron-like tasks, you can sort out what happened
 
-Enter Methadone::SH 
+Enter Methadone::SH
 
     sh "cp foo.txt /tmp"
     # => logs command at DEBUG level
@@ -149,7 +153,7 @@ Currently, there are classes that assist in directing output logger-style to the
 
 == Cucumber Steps
 
-Methadone uses aruba[http://www.github.com/cucumber/aruba] for BDD-style testing with cucumber. This library has some awesome steps, and Methadone provides additional, more opinionated, steps.  
+Methadone uses aruba[http://www.github.com/cucumber/aruba] for BDD-style testing with cucumber. This library has some awesome steps, and Methadone provides additional, more opinionated, steps.
 
 === Example
 
