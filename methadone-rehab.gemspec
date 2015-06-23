@@ -3,15 +3,15 @@ $:.push File.expand_path("../lib", __FILE__)
 require "methadone/version"
 
 Gem::Specification.new do |s|
-  s.name        = "methadone-clinic"
+  s.name        = "methadone-rehab"
   s.version     = Methadone::VERSION
   s.platform    = Gem::Platform::RUBY
-  s.authors     = ["davetron5000","dennisjbell"]
-  s.email       = ["davetron5000 at gmail.com","dennis.j.bell at gmail.com"]
-  s.homepage    = "http://github.com/dennisjbell/methadone-clinic"
+  s.authors     = ["davetron5000","dennisjbell", "juhazi"]
+  s.email       = ["davetron5000 at gmail.com","dennis.j.bell at gmail.com", "juha.suuraho at enemy.fi"]
+  s.homepage    = "http://github.com/enemy/methadone-rehab"
   s.summary     = %q{Kick the bash habit and start your command-line apps off right}
-  s.description = %q{Improvement to Methadone [http://github.com/davetron5000/methadone] that adds subcommands, option interaction rules (requires/excludes), and improved argument handling, while continuing to provide a lot of small but useful features for developing a command-line app, including an opinionated bootstrapping process, some helpful cucumber steps, and some classes to bridge logging and output into a simple, unified, interface that was in Methadone 1.3}
-  s.rubyforge_project = "methadone-clinic"
+  s.description = %q{Improvement to Methadone Clinic [http://github.com/dennisjbell/methadone-clinic] that adds subcommands, option interaction rules (requires/excludes), and improved argument handling, while continuing to provide a lot of small but useful features for developing a command-line app, including an opinionated bootstrapping process, some helpful cucumber steps, and some classes to bridge logging and output into a simple, unified, interface that was in Methadone 1.9}
+  s.rubyforge_project = "methadone-rehab"
 
   s.files         = `git ls-files`.split("\n")
   s.test_files    = `git ls-files -- {test,spec,features}/*`.split("\n")

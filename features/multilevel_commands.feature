@@ -42,7 +42,7 @@ Feature: Support multi-level commands
     And the file "tmp/multigem/multigem.gemspec" should match /add_development_dependency\('aruba'/
     And the file "tmp/multigem/multigem.gemspec" should match /add_development_dependency\('rdoc'/
     And the file "tmp/multigem/multigem.gemspec" should match /add_development_dependency "rake", "~> 10.0"/
-    And the file "tmp/multigem/multigem.gemspec" should match /add_dependency\('methadone'/
+    And the file "tmp/multigem/multigem.gemspec" should match /add_dependency\('methadone-rehab'/
     And the file "tmp/multigem/multigem.gemspec" should use the same block variable throughout
     And the file "tmp/multigem/bin/multigem" should match /command "walk" => Multigem::Commands::Walk/
     And the file "tmp/multigem/bin/multigem" should match /command "run" => Multigem::Commands::Run/
